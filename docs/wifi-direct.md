@@ -23,7 +23,7 @@ Ví dụ khác: Miracast wireless display standard.
 
 Android cũng hỗ trợ sẵn Wi-Fi Direct, mặc dù chưa nhiều ứng dụng sử dụng.
 
-## 3. Cách thức hoạt động của Wi-Fi Direct
+## 2. Cách thức hoạt động của Wi-Fi Direct
 
 Wi-Fi Direct sử dụng một số chuẩn để thực hiện các chức năng:
 
