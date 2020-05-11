@@ -54,7 +54,7 @@ Nếu ứng dụng của ta thiết lập 1 dịch vụ cục bộ, ta cần đ�
 
         record.put("listen_port", String.valueOf(SERVER_PORT));
         record.put("buddy_name", "DzuyVED" + (int) (Math.random() * 1000));
-        record.put("avaiable", "visible");
+        record.put("available", "visible");
 
         /* Service infomation.
         Pass it an instance name, service type _protocol._transportlayer
