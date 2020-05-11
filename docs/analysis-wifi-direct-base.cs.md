@@ -20,7 +20,7 @@ Thuộc tính duy nhất trong class `WifiDirectBase`, khởi tạo thư viện 
 
 ## 3. Methods
 
-### 3.1. `initialize(string gameObjectName)`
+### 3.1. `Initialize(string gameObjectName)`
 
 ```cs
     public const string WIFI_DIRECT_CLASS_NAME = "<>"; // ví dụ: "dev.gopro.se.UnityWifiDirect"
@@ -31,7 +31,7 @@ Thuộc tính duy nhất trong class `WifiDirectBase`, khởi tạo thư viện 
     /// <param name="gameObjectName">
     /// Tên của đối tượng game điều khiển Wifi Direct và tiếp nhận tất cả các sự kiện.
     /// </param>
-    public void initialize(string gameObjectName) {
+    public void Initialize(string gameObjectName) {
         if (_wifiDirect == null) {
             _wifiDirect = new AndroidJavaObject()
             _wifiDirect.CallStatic("initialize", gameObjectName);
@@ -103,10 +103,10 @@ Hàm này gọi đến phương thức tĩnh `initialize()` với tham số `gam
     }
 ```
 
-### 3.2. `terminate()`
+### 3.2. `Terminate()`
 
 ```cs
-    public void terminate() {
+    public void Terminate() {
         if (_wifiDirect != null) {
             _wifiDirect.CallStatic("terminate");
         }
@@ -125,7 +125,7 @@ Hàm này hủy dịch vụ bằng cách gọi đến phương thức `terminate
 
 ```
 
-### 3.3. `broadcastService(string service, Dictionary<string, string> record)`
+### 3.3. `BroadcastService(string service, Dictionary<string, string> record)`
 
 ```cs
     /// <summary>
@@ -137,12 +137,12 @@ Hàm này hủy dịch vụ bằng cách gọi đến phương thức `terminate
     /// <param name="record">
     /// Các cặp key, value gửi lên cùng dịch vụ
     /// </param>
-    public void broadcastService(string service, Dictionary<string, string> record) {
+    public void BroadcastService(string service, Dictionary<string, string> record) {
         using(AndroidJavaObject hashMap = new AndroidJavaObject("java.util.HashMap")) {
             foreach(KeyValuePair<string, string> kvp in record) {
                 hashMap.Call<string> ("put", kvp.Key, kvp.Value);
             }
-        wifiDirect.CallStatic ("broadcastService", service, hashMap);
+        _wifiDirect.CallStatic ("broadcastService", service, hashMap);
         }
     }
 ```
@@ -154,3 +154,68 @@ Phương thức tĩnh `broadcastService()` với tham số `service` và `hashMa
         wifiDirectHandler.addLocalService(serviceName, records);
     }
 ```
+
+Phương thức `addLocalService()` của đối tượng lớp `WifiDirectHandler` thực hiện các công việc sau:
+
+- Thêm thông tin dịch vụ:
+
+  ```java
+    ...
+    wifiP2pServiceInfo = WifiP2pServiceInfo.newInstance(
+        serviceName,
+        ServiceType.PRESENCE_TCP.toString(), // "_presence._tcp"
+        record
+    );
+  ```
+
+- Thêm dịch vụ vào local service:
+
+  ```java
+    // Chỉ thêm 1 local service nếu làm sạch local serivces đã có sẵn.
+    wifiP2pManager.clearLocalServices(channel, new WifiP2pManager.ActionListener() {
+
+        @Override
+        public void onSuccess() {
+            // Thêm 1 local service
+            wifiP2pManager.addLocalService(channel, wifiP2pServiceInfo, new WifiP2pManager.ActionListener(){
+                @Override
+                public void onSuccess() {
+                }
+
+                @Override
+                public void onFailure(int reason) {
+                    wifiP2pServiceInfo = null;
+                }
+            });
+        }
+
+        @Override
+        public void onFailure(int reason) {
+            wifiP2pServiceInfo = null;
+        }
+    });
+  ```
+
+Theo như **Tài liệu tham khảo** của **Android** thì sau khi đăng ký local service, framework sẽ tự động phản hồi tới các yêu cầu service discovery từ các thiết bị ngang hàng.
+
+### 3.4. `DiscoverServices()`
+
+```cs
+    /// <summary>
+    /// Tìm dịch vụ lân cận (không có timeout)
+    /// </summary>
+    public void DiscoverServices() {
+        _wifiDirect.CallStatic("discoverServices");
+    }
+```
+
+Phương thức này nhằm mục đích tìm kiếm các dịch vụ ngang hàng, trong thư viện Java, phương thức `discoverServices()` đơn giản là:
+
+```java
+    public static void discoverServices() {
+        wifiDirectHandler.continuouslyDiscoverServices();
+    }
+```
+
+Hàm `continuouslyDiscoverServices()` được triển khai như sau:
+...
