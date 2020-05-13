@@ -218,4 +218,147 @@ Phương thức này nhằm mục đích tìm kiếm các dịch vụ ngang hàn
 ```
 
 Hàm `continuouslyDiscoverServices()` được triển khai như sau:
+
+```java
+private boolean serviceDiscoveryRegistered = false;
+// Thuộc tính này để kiểm tra xem dịch vụ discovery đã được đăng ký chưa
+private boolean isDiscovering = false;
+// Thuộc tính này để kiểm tra xem có đang chạy dịch vụ discovery không
+private List<ServiceDiscoveryTask> serviceDiscoveryTasks
+// Danh sách để theo dõi các task discovery đang trong xử lý
+private WifiP2pServiceRequest serviceRequest;
 ...
+public void continuouslyDiscoverServices() {
+    if (serviceDiscoveryRegistered == false) {
+        registerServiceDiscoveryListeners();
+        serviceDiscoveryRegistered = true;
+    }
+
+    if (isDiscovering) {
+        // Do nothing
+    } else {
+        addServiceDiscoveryRequest();
+        isDiscovering = true;
+        serviceDiscoveryTasks = new ArrayList<>();
+        discoverServices();
+        submitServiceDiscoveryTask();
+    }
+}
+
+// --- addServiceDiscoveryRequest
+private void addServiceDiscoveryRequest() {
+    serviceRequest = WifiP2pDnsSdServiceRequest.newInstance();
+
+    // Nói cho framework ta muốn quét dịch vụ, tiền điều kiện cho việc discovery
+    wifiP2pManager.addServiceRequest(
+        channel,
+        serviceRequest,
+        new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+
+            }
+
+            @Override
+            public void onFailure(int reason) {
+                serviceRequest = null;
+            }
+        }
+    );
+}
+
+// --- discoverServices
+public void discoverServices() {
+    // Khởi tạo service discovery method. Bắt đầu quét
+    wifiP2pManager.discoverServices(channel, new WifiP2pManager.ActionListener() {
+        @Override
+        public void onSuccess() {
+
+        }
+
+        @Override
+        public void onFailure(int reason) {
+  
+        }
+    });
+}
+
+// --- submitServiceDiscoveryTask
+private submitServiceDiscoveryTask() {
+    int timeToWait = SERVICE_DISCOVERY_TIMEOUT; // init const, 120000ms
+    ServiceDiscoveryTask serviceDiscoveryTask = new ServiceDiscoveryTask();
+    Timer timer = new Timer();
+    // Xác nhận tác vụ và thêm vào danh sách
+    timer.schedule(serviceDiscoveryTask, timeToWait);
+    serviceDiscoveryTasks.add(serviceDiscoveryTask);
+}
+
+// --- ServiceDiscoveryTask class
+private class ServiceDiscoveryTask extends TimerTask {
+    public void run() {
+        discoverServices();
+        if (isDiscovering) {
+            submitServiceDiscoveryTask();
+        }
+
+        serviceDiscoveryTasks.remove(this)
+    }
+}
+
+```
+
+### 3.5. `stopDiscovering()`
+
+```cs
+/// <summary>
+/// Stops searching for services
+/// </summary>
+public void stopDiscovering () {
+    _wifiDirect.CallStatic ("stopDiscovering");
+}
+```
+
+Phương thức này dừng việc tìm dịch vụ, có thể gọi khi đã kết nối thành công 1 dịch vụ nào đó. Trong thư viện:
+
+```java
+public static void stopDiscovering () {
+        wifiDirectHandler.stopServiceDiscovery();
+    }
+```
+
+Hàm `stopServiceDiscovery()`:
+
+```java
+private Map<String, DnsSdTxtRecord> dnsSdTxtRecordMap;
+private Map<String, DnsSdService> dnsSdServiceMap;
+...
+public void stopServiceDiscovery() {
+    if (isDiscovering) {
+        dnsSdServiceMap = new HashMap<>();
+        dnsSdTxtRecordMap = new HashMap<>();
+        // Hủy tất cả các task discovery service đang tiến hành
+        for (ServiceDiscoveryTask serviceDiscoveryTask : serviceDiscoveryTasks) {
+            serviceDiscoveryTask.cancel();
+        }
+        serviceDiscoveryTasks = null;
+        isDiscovering = false;
+        clearServiceDiscoveryRequests();
+    }
+}
+
+private void clearServiceDiscoveryRequests() {
+    if (serviceRequest != null) {
+        wifiP2pManager.clearServiceRequests(channel, new WifiP2pManager.ActionListener() {
+            @Override
+            public void onSuccess() {
+                serviceRequest = null;
+            }
+
+            @Override
+            public void onFailure(int reason) {
+
+            }
+        })
+    }
+}
+```
