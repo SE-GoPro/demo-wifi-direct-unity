@@ -42,7 +42,9 @@ public class WifiDirectController : WifiDirectBase {
 
 ### Step 3. Xử lý khi tìm thấy service từ máy khác
 
-Hiện tại thư viện gốc cũng chưa xử lý gì với tên service và record khởi tạo nên tạm thời là cứ máy nào có service với gameObject trùng tên là kết nối được.
+Hiện tại thư viện gốc mới dừng lại ở chỉ khi có service đến với record được broadcast như trên. Ta có thể thêm thông tin serivce như "Tên người chơi", "loại máy" vào record khởi tạo.
+
+Khi không có record đi kèm service
 
 ```cs
 public class WifiDirectController : WifiDirectBase {
@@ -54,6 +56,32 @@ public class WifiDirectController : WifiDirectBase {
     ...
 }
 ```
+
+Khi có record khởi tạo đi kèm (hiện không sử dụng được)
+
+```cs
+...
+public void OnReceiveStringifyRecord (string stringifyRecord) {
+    int addrSplitAddress = stringifyRecord.IndexOf ('_');
+    string addrEncoded = stringifyRecord.Substring (0, addrSplitAddress);
+    string addr = Encoding.Unicode.GetString(Convert.FromBase64String(addrEncoded));
+    string remaining = stringifyRecord.Substring (addrSplitAddress+1);
+    int splitIndex = remaining.IndexOf ('_');
+    Dictionary<string, string> record = new Dictionary<string, string> ();
+    while (splitIndex > 0 && remaining.Length > 0) {
+        int eqIndex = remaining.IndexOf ('?');
+        string key = remaining.Substring (0, eqIndex);
+        splitIndex = remaining.IndexOf ('_');
+        string value = remaining.Substring (eqIndex + 1, splitIndex-eqIndex-1);
+        remaining = remaining.Substring (splitIndex + 1);
+        record.Add (Encoding.Unicode.GetString(Convert.FromBase64String(key)), Encoding.Unicode.GetString(Convert.FromBase64String(value)));
+    }
+        Debug.Log("stringify record found");
+        this.OnTxtRecord (addr, record);
+    }
+```
+
+Ở đây `base` đã xử lý sẵn record đến, việc xử lý của lớp controller là ở phương thức `OnTxtRecord`. Hãy `override` nó để hiển thị cho hợp lý.
 
 ### Step 4. Kết nối
 
