@@ -26,7 +26,7 @@ Thuộc tính duy nhất trong class `WifiDirectBase`, khởi tạo thư viện 
     public const string WIFI_DIRECT_CLASS_NAME = "<>"; // ví dụ: "dev.gopro.se.UnityWifiDirect"
 
     /// <summary>
-    /// Khởi tạo thư viên, chỉ nên gọi 1 lần
+    /// Khởi tạo thư viện, chỉ nên gọi 1 lần
     /// </summary>
     /// <param name="gameObjectName">
     /// Tên của đối tượng game điều khiển Wifi Direct và tiếp nhận tất cả các sự kiện.
@@ -307,13 +307,13 @@ private class ServiceDiscoveryTask extends TimerTask {
 
 ```
 
-### 3.5. `stopDiscovering()`
+### 3.5. `StopDiscovering()`
 
 ```cs
 /// <summary>
 /// Stops searching for services
 /// </summary>
-public void stopDiscovering () {
+public void StopDiscovering () {
     _wifiDirect.CallStatic ("stopDiscovering");
 }
 ```
@@ -360,5 +360,249 @@ private void clearServiceDiscoveryRequests() {
             }
         })
     }
+}
+```
+
+### 3.6. `ConnectToService(string address)`
+
+```cs
+/// <summary>
+/// Kết nối đến một dịch vụ
+/// </summary>
+/// <param name="address">
+/// Địa chỉ (MAC) của dịch vụ
+/// </param>
+public void ConnectToService (string address) {
+    _wifiDirect.CallStatic ("connectToService", address);
+}
+```
+
+Phương thức này thiết lập kết nối đến 1 dịch vụ ở một thiết bị nào đó có địa chỉ MAC tương ứng là `address`. Trong thư viện:
+
+```java
+public static void connectToService (String address) {
+    wifiDirectHandler.initiateConnectToService(wifiDirectHandler.getDnsSdServiceMap().get(address));
+}
+```
+
+Hàm `initiateConnectToService()` nhận vào đối tượng thuộc lớp `DnsSdService`, lấy từ một map `DnsSdService`:
+
+```java
+public void initiateConnectToService(DnsSdService service) {
+    // Thiết lập thông tin của thiết bị ngang hàng chứa dịch vụ
+    WifiP2pConfig wifiP2pConfig = new WifiP2pConfig();
+    wifiP2pConfig.deviceAddress = service.getService().deviceAddress;
+    wifiP2pConfig.wps.setup = WpsInfo.PBC;
+
+    // Bắt đầu 1 kết nối P2P với thiết bị được cấu hình ở trên
+    wifiP2pManager.connect(channel, wifiP2pConfig, new WifiP2pManager.ActionListener() {
+        @Override
+        public void onSuccess() {
+
+        }
+
+        @Override
+        public void onFailure(int reason) {
+
+        }
+    });
+}
+```
+
+Về thuộc tính `dnsSdServiceMap` của lớp `WifiDirectHandler`
+
+```java
+/* Khởi tạo là thuộc tính có kiểu Map<String, DnsSdService>,
+gồm key là địa chỉ và value là thông tin dịch vụ*/
+private Map<String, DnsSdService> dnsSdServiceMap;
+...
+/* Constructor */
+public WifiDirectHandler() {
+    ...
+    dnsSdServiceMap = new HashMap<>();
+}
+```
+
+Ở trên, ta chưa nói đến hàm `registerServiceDiscoveryListeners()` được gọi trong hàm `continuouslyDiscoverServices()`. Ở hàm `registerServiceDiscoveryListeners()`, ta sẽ thêm các dịch vụ vào trong danh sách `dnsSdServiceMap`
+
+```java
+private void registerServiceDiscoveryListeners() {
+    // DnsSdTxtRecordListener
+    // Interface để gọi lại khi record Bonjour TXT là khả dụng cho 1 service
+    // Sử dụng để nghe các record tới và lấy thông tin thiêt bị ngang hàng.
+    // TODO: send object with intent
+    WifiP2pManager.DnsSdTxtRecordListener txtRecordListener = new WifiP2pManager.DnsSdTxtRecordListener() {
+        @Override
+        public void onDnsSdTxtRecordAvailable(String fullDomainName, Map<String, String> txtRecordMap, WifiP2pDevice device) {
+            Intent intent = new Intent(Action.DNS_SD_TXT_RECORD_AVAILABLE);
+            intent.putExtra(TXT_MAP_KEY, device.deviceAddress);
+            localBroadcastManager.sendBroadcast(intent);
+            dnsSdTxtRecordMap.put(device.deviceAddress, new DnsSdTxtRecord(fullDomainName, txtRecordMap, device));
+        }
+    };
+
+    // DnsSdServiceResponseListener
+    // Interface để gọi lại khi nhận được phản hồi record Bonjour TXT
+    // Sử dụng để lấy thông tin dịch vụ
+    WifiP2pManager.DnsSdServiceResponseListener serviceResponseListener = new WifiP2pManager.DnsSdServiceResponseListener() {
+        @Override
+        public void onDnsSdServiceAvailable(String instanceName, String registrationType, WifiP2pDevice device) {
+            dnsSdServiceMap.put(srcDevice.deviceAddress, new DnsSdService(instanceName, registrationType, device));
+            Intent intent = new Intent(Action.DNS_SD_SERVICE_AVAILABLE);
+            intent.putExtra(SERVICE_MAP_KEY, device.deviceAddress);
+            localBroadcastManager.sendBroadcast(intent)
+        }
+    };
+
+    wifiP2pManager.setDnsSdResponseListeners(channel, serviceResponseListener, txtRecordListener);
+}
+```
+
+### 3.7. `PublishMessage(string msg)`
+
+```cs
+/// <summary>
+/// Gửi 1 tin nhắn đến thiết bị đã được kết nối
+/// </summary>
+/// <param name="msg">
+/// Tin nhắn cần gửi đi
+/// </param>
+public void PublishMessage (string msg) {
+    _wifiDirect.CallStatic ("sendMessage", msg);
+}
+```
+
+Sau khi đã kết nối, thiết bị có thể gửi tin nhắn với phương thức `sendMessage()` trong thư viện:
+
+```java
+public static void sendMessage(String msg) {
+    try {
+        wifiDirectHandler.getCommunicationManager().write(msg.getBytes("UTF-16"));
+    } catch (Exception e) {
+        // Có ngoại lệ vì một thằng ĐBRR nào đó không hỗ trợ UTF-16
+    }
+}
+```
+
+Và đây là lớp `CommunicationManager`
+
+```java
+import android.os.Handler;
+import android.os.SystemClock;
+import android.util.Log;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InterfaceAddress;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+
+public class CommunicationManager implements Runnable {
+    private Socket socket = null;
+    private Handler handler;
+    private OutputStream outputStream;
+
+    public CommunicationManager(Socket socket, Handler handler) {
+        this.socket = socket;
+        this.handler = handler;
+    }
+
+    @Override
+    public void run() {
+        try {
+            InputStream inputStream = socket.getInputStream();
+            outputStream = socket.getOutputStream();
+            byte[] messageSizeBuffer = new byte[Integer.SIZE/Byte.SIZE];
+            int messageSize;
+            byte[] buffer;
+            int bytes;
+            int totalBytes;
+            handler.obtainMessage(WifiDirectHandler.MY_HANDLE, this).sendToTarget();
+
+            while (true) {
+                try {
+                    bytes = inputStream.read(messageSizeBuffer);
+                    if (bytes == -1) {
+                        break;
+                    }
+                    messageSize = ByteBuffer.wrap(messageSizeBuffer).getInt();
+
+                    buffer = new byte[messageSize];
+                    bytes = inputStream.read(buffer);
+                    totalBytes = bytes;
+                    while (bytes != -1 && totalBytes < messageSize) {
+                        bytes = inputStream.read(buffer, totalBytes, messageSize - totalBytes);
+                        totalBytes += bytes;
+                    }
+
+                    if (bytes == -1) {
+                        break;
+                    }
+
+                    handler.obtainMessage(WifiDirectHandler.MESSAGE_READ,
+                            bytes, -1, buffer).sendToTarget();
+                } catch (IOException e) {
+                    handler.obtainMessage(WifiDirectHandler.COMMUNICATION_DISCONNECTED, this).sendToTarget();
+                }
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace(); // ???
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace() // ???
+            }
+        }
+    }
+
+    public void write(byte[] message) {
+        try {
+            ByteBuffer sizeBuffer = ByteBuffer.allocate(Integer.Size/Byte.Size);
+            byte[] sizeArray = sizeBuffer.putInt(message.length).array();
+            byte[] completeMessage = new byte[sizeArray.length + message.length];
+            System.arraycopy(sizeArray, 0, completeMessage, 0, sizeArra
+            .length);
+            System.arraycopy(message, 0, completeMessage, sizeArray.length, message.length);
+            outputStream.write(completeMessage);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+### 3.8. `OnReceiveStringifyRecord(string stringifyRecord)`
+
+```cs
+/// <summary>
+/// Called when a service with text records has been found (includes deserializer)
+/// </summary>
+/// <remarks>
+/// Don't override this, override the onTxtRecord() method because the deserializer is necessary
+/// </remarks>
+/// <param name="stringifyRecord">
+/// The deserialized text reocrds
+/// </param>
+public void OnReceiveStringifyRecord (string stringifyRecord) {
+    int addrSplitAddress = stringifyRecord.IndexOf ('_');
+    string addrEncoded = stringifyRecord.Substring (0, addrSplitAddress);
+    string addr = Encoding.Unicode.GetString(Convert.FromBase64String(addrEncoded));
+    string remaining = stringifyRecord.Substring (addrSplitAddress+1);
+    int splitIndex = remaining.IndexOf ('_');
+    Dictionary<string, string> record = new Dictionary<string, string> ();
+    while (splitIndex > 0 && remaining.Length > 0) {
+        int eqIndex = remaining.IndexOf ('?');
+        string key = remaining.Substring (0, eqIndex);
+        splitIndex = remaining.IndexOf ('_');
+        string value = remaining.Substring (eqIndex + 1, splitIndex-eqIndex-1);
+        remaining = remaining.Substring (splitIndex + 1);
+        record.Add (Encoding.Unicode.GetString(Convert.FromBase64String(key)), Encoding.Unicode.GetString(Convert.FromBase64String(value)));
+    }
+    Debug.Log("stringify record found");
+    this.OnTxtRecord (addr, record);
 }
 ```
