@@ -170,7 +170,25 @@ public class WifiDirectBase : MonoBehaviour {
 	/// The message sent
 	/// </param>
 	public virtual void OnReceiveMessage (string message) {
-
+    
 	}
+
+    public void Send(Dictionary<string, string> dict) {
+        string stringifyDict = "";
+        foreach(KeyValuePair<string, string> pair in dict) {
+            stringifyDict += pair.Key + "=" + pair.Value + "&";
+        }
+        this.PublishMessage(stringifyDict.TrimEnd('&'));
+    }
+
+    public Dictionary<string, string> OnReceive(string strDict) {
+        Dictionary<string, string> result = new Dictionary<string, string>();
+        string[] pairs = strDict.Split('&');
+        foreach(string pair in pairs) {
+            string[] kav = pair.Split('=');
+            result.Add(kav[0], kav[1]);
+        }
+        return result;
+    }
 }
 #endif
