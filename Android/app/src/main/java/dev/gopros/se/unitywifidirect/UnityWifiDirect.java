@@ -88,6 +88,11 @@ public class UnityWifiDirect {
         catch (Exception ignored) {
         }
     }
+
+    public static String getDeviceAddress() {
+        return wifiDirectHandler.getThisDevice().deviceAddress;
+    }
+
     //anonymous classes
     private static ServiceConnection wifiServiceConnection = new ServiceConnection() {
 
