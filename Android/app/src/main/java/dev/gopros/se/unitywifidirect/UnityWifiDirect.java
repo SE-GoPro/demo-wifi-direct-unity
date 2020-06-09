@@ -124,18 +124,18 @@ public class UnityWifiDirect {
                     UnityPlayer.UnitySendMessage(gameObject, "OnServiceFound", serviceAddress);
                     break;
                 case WifiDirectHandler.Action.DNS_SD_TXT_RECORD_AVAILABLE:
-                    String txtAddress = intent.getStringExtra(WifiDirectHandler.TXT_MAP_KEY);
-                    Map<String, String> recordMap = wifiDirectHandler.getDnsSdTxtRecordMap().get(txtAddress).getRecord();
-                    StringBuilder encoded = new StringBuilder();
-                    encoded.append(txtAddress).append("_");
-                    for(Map.Entry<String, String> entry : recordMap.entrySet()) {
-                        encoded.append(entry.getKey()).append("?");
-                        encoded.append(entry.getValue()).append("_");
-                    }
-                    String result = encoded.toString();
-                    String formatted = result.substring(0, result.lastIndexOf('_'));
-                    Log.i(TAG, "device found with text record, formatted string: " + formatted);
-                    UnityPlayer.UnitySendMessage(gameObject, "OnReceiveStringifyRecord", formatted);
+//                    String txtAddress = intent.getStringExtra(WifiDirectHandler.TXT_MAP_KEY);
+//                    Map<String, String> recordMap = wifiDirectHandler.getDnsSdTxtRecordMap().get(txtAddress).getRecord();
+//                    StringBuilder encoded = new StringBuilder();
+//                    encoded.append(txtAddress).append("_");
+//                    for(Map.Entry<String, String> entry : recordMap.entrySet()) {
+//                        encoded.append(entry.getKey()).append("?");
+//                        encoded.append(entry.getValue()).append("_");
+//                    }
+//                    String result = encoded.toString();
+//                    String formatted = result.substring(0, result.lastIndexOf('_'));
+//                    Log.i(TAG, "device found with text record, formatted string: " + formatted);
+//                    UnityPlayer.UnitySendMessage(gameObject, "OnReceiveStringifyRecord", formatted);
                     break;
                 case WifiDirectHandler.Action.SERVICE_CONNECTED:
                     Log.i(TAG, "Connection made!");
