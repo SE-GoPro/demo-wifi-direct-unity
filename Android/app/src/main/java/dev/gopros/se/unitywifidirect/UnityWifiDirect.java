@@ -67,6 +67,7 @@ public class UnityWifiDirect {
             unityActivity.unbindService(wifiServiceConnection);
             wifiDirectHandlerBound = false;
         }
+
     }
     public static void broadcastService(String serviceName, HashMap<String, String> records) {
         Log.i(TAG, "broadcasting service: " + serviceName);
@@ -94,6 +95,14 @@ public class UnityWifiDirect {
 
     public static String getDeviceAddress() {
         return wifiDirectHandler.getThisDevice().deviceAddress;
+    }
+
+    public static void removeService() {
+        wifiDirectHandler.removeService();
+    }
+
+    public static void removeGroup() {
+        wifiDirectHandler.removeGroup();
     }
 
     //anonymous classes
