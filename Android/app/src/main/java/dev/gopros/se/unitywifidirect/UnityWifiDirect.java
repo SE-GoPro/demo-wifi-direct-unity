@@ -20,7 +20,10 @@ import android.util.Base64;
 
 import com.unity3d.player.*;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -124,27 +127,34 @@ public class UnityWifiDirect {
                     UnityPlayer.UnitySendMessage(gameObject, "OnServiceFound", serviceAddress);
                     break;
                 case WifiDirectHandler.Action.DNS_SD_TXT_RECORD_AVAILABLE:
-//                    String txtAddress = intent.getStringExtra(WifiDirectHandler.TXT_MAP_KEY);
-//                    Map<String, String> recordMap = wifiDirectHandler.getDnsSdTxtRecordMap().get(txtAddress).getRecord();
-//                    StringBuilder encoded = new StringBuilder();
-//                    encoded.append(txtAddress).append("_");
-//                    for(Map.Entry<String, String> entry : recordMap.entrySet()) {
-//                        encoded.append(entry.getKey()).append("?");
-//                        encoded.append(entry.getValue()).append("_");
-//                    }
-//                    String result = encoded.toString();
-//                    String formatted = result.substring(0, result.lastIndexOf('_'));
-//                    Log.i(TAG, "device found with text record, formatted string: " + formatted);
-//                    UnityPlayer.UnitySendMessage(gameObject, "OnReceiveStringifyRecord", formatted);
+                    String txtAddress = intent.getStringExtra(WifiDirectHandler.TXT_MAP_KEY);
+                    Map<String, String> recordMap = wifiDirectHandler.getDnsSdTxtRecordMap().get(txtAddress).getRecord();
+                    //encode into base64
+                    /*
+                    addr_key1?val1_key2?val2_
+                    addr, keys, and values are all base64 so you can put any string through
+                     */
+                    StringBuilder encoded = new StringBuilder();
+                    try {
+                        encoded.append(Base64.encodeToString(txtAddress.getBytes("UTF-16"), Base64.DEFAULT)).append("_");
+                        for(Map.Entry<String, String> entry : recordMap.entrySet()) {
+                            encoded.append(Base64.encodeToString(entry.getKey().getBytes("UTF-16"), Base64.DEFAULT)).append("?");
+                            encoded.append(Base64.encodeToString(entry.getValue().getBytes("UTF-16"), Base64.DEFAULT)).append("_");
+                        }
+                    } catch (UnsupportedEncodingException ignored) {
+                    }
+                    String result = encoded.toString();
+                    Log.i(TAG, "device found with text record, formatted string: " + result);
+                    UnityPlayer.UnitySendMessage(gameObject, "OnReceiveStringifyRecord", result);
                     break;
                 case WifiDirectHandler.Action.SERVICE_CONNECTED:
                     Log.i(TAG, "Connection made!");
-                    UnityPlayer.UnitySendMessage(gameObject, "OnConnect", "");
+                    UnityPlayer.UnitySendMessage(gameObject, "OnConnect", wifiDirectHandler.getThisDevice().deviceAddress);
                     break;
                 case WifiDirectHandler.Action.MESSAGE_RECEIVED:
                     try {
                         String msg = new String(Objects.requireNonNull(intent.getByteArrayExtra(WifiDirectHandler.MESSAGE_KEY)), StandardCharsets.UTF_16);
-                        Log.i(TAG, "Message received: "+msg);
+                        Log.i(TAG, "Message received: " + msg);
                         UnityPlayer.UnitySendMessage(gameObject, "OnReceiveMessage", msg);
                     } catch (Exception ignored) {}
                     break;

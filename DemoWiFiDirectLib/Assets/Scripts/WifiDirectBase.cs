@@ -128,22 +128,22 @@ public class WifiDirectBase : MonoBehaviour {
 	/// The deserialized text reocrds
 	/// </param>
 	public void OnReceiveStringifyRecord (string stringifyRecord) {
-		int addrSplitAddress = stringifyRecord.IndexOf ('_');
-		string addrEncoded = stringifyRecord.Substring (0, addrSplitAddress);
+        string[] addressWithRecords = stringifyRecord.Split('?');
+        string addrEncoded = addressWithRecords[0];
+        string[] records = addressWithRecords[1].Split('&');
+
 		string addr = Encoding.Unicode.GetString(Convert.FromBase64String(addrEncoded));
-		string remaining = stringifyRecord.Substring (addrSplitAddress+1);
-		int splitIndex = remaining.IndexOf ('_');
-		Dictionary<string, string> record = new Dictionary<string, string> ();
-		while (splitIndex > 0 && remaining.Length > 0) {
-			int eqIndex = remaining.IndexOf ('?');
-			string key = remaining.Substring (0, eqIndex);
-			splitIndex = remaining.IndexOf ('_');
-			string value = remaining.Substring (eqIndex + 1, splitIndex-eqIndex-1);
-			remaining = remaining.Substring (splitIndex + 1);
-			record.Add (Encoding.Unicode.GetString(Convert.FromBase64String(key)), Encoding.Unicode.GetString(Convert.FromBase64String(value)));
-		}
+		Dictionary<string, string> recordDict = new Dictionary<string, string> ();
+        foreach(string record in records) {
+            string[] kav = record.Split('_');
+            string key = Encoding.Unicode.GetString(Convert.FromBase64String(kav[0]));
+            string value = Encoding.Unicode.GetString(Convert.FromBase64String(kav[1]));
+
+            recordDict.Add(key, value);
+        }
+
 		Debug.Log("stringify record found");
-		this.OnTxtRecord (addr, record);
+		this.OnTxtRecord (addr, recordDict);
 	}
 	/// <summary>
 	/// Called when a service with text record is found (deserialized already)

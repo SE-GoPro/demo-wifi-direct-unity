@@ -54,6 +54,15 @@ public class Main : WifiDirectBase {
         });
     }
 
+    public override void OnTxtRecord(string addr, Dictionary<string, string> record) {
+        GameObject newButton = Instantiate(addrButton);
+        newButton.GetComponentInChildren<Text>().text = record["player"];
+        newButton.transform.SetParent(buttonList.transform, false);
+        newButton.GetComponent<Button>().onClick.AddListener(() => {
+            this.MakeConnection(addr);
+        });
+    }
+
     //When the button is clicked, connect to the service at its address
     private void MakeConnection(string addr) {
         base.ConnectToService(addr);
