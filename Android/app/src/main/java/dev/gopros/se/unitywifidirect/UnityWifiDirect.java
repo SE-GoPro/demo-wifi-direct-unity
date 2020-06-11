@@ -149,7 +149,8 @@ public class UnityWifiDirect {
                     break;
                 case WifiDirectHandler.Action.SERVICE_CONNECTED:
                     Log.i(TAG, "Connection made!");
-                    UnityPlayer.UnitySendMessage(gameObject, "OnConnect", wifiDirectHandler.getThisDevice().deviceAddress);
+                    String peerAddress = intent.getStringExtra(WifiDirectHandler.SERVICE_MAP_KEY);
+                    UnityPlayer.UnitySendMessage(gameObject, "OnConnect", peerAddress);
                     break;
                 case WifiDirectHandler.Action.MESSAGE_RECEIVED:
                     try {
