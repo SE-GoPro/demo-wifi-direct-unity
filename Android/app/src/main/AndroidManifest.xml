@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.gmail.jeffersonlee2000.unitywifidirect"
+    package="dev.gopros.se.unitywifidirect"
     android:versionCode="1"
     android:versionName="1.0">
     <uses-sdk android:minSdkVersion="16" />
@@ -20,6 +20,7 @@
     <uses-permission
         android:required="true"
         android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <application>
         <service android:name="edu.rit.se.wifibuddy.WifiDirectHandler" android:enabled="true"/>
     </application>
